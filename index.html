@@ -3,19 +3,34 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Robot Electrical Checklist</title>
+<title>Checklist</title>
 
 <style>
   :root{
     --bg:#0f1116;
-    --panel:#121622;
     --text:#d6d6d6;
     --muted:#9aa3b2;
     --active:#1c1f26;
     --border:#2a3142;
     --good:#4caf50;
     --warn:#ffb020;
+    --panel: rgba(15,17,22,0.95);
+    --shadow: 0 4px 12px rgba(0,0,0,0.35);
   }
+
+  /* Light theme overrides */
+  [data-theme="light"]{
+    --bg:#f6f7fb;
+    --text:#1b1f2a;
+    --muted:#4d5870;
+    --active:#e9edf6;
+    --border:#cfd7e6;
+    --good:#2e7d32;
+    --warn:#b45309;
+    --panel: rgba(246,247,251,0.92);
+    --shadow: 0 4px 12px rgba(10,20,40,0.12);
+  }
+
   body{
     background:var(--bg);
     color:var(--text);
@@ -24,39 +39,82 @@
     padding:24px;
   }
   .wrap{max-width:980px;margin:0 auto;}
+
   header{
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 
-  background: rgba(15,17,22,0.95);
-  backdrop-filter: blur(6px);
+    background: var(--panel);
+    backdrop-filter: blur(6px);
 
-  padding: 12px 0 16px 0;
+    padding: 12px 0 16px 0;
 
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
 
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-}
-  h1{margin:0;font-weight:650;font-size:28px;}
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .topRow{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  h1{margin:0;font-weight:650;font-size:28px; flex: 1 1 auto;}
+
+  .controls{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex: 0 0 auto;
+  }
+
+  select, button{
+    font: inherit;
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+  [data-theme="light"] select,
+  [data-theme="light"] button{
+    background: rgba(0,0,0,0.03);
+  }
+
   .sub{color:var(--muted);font-size:14px;line-height:1.35;}
+
   .barWrap{
-    background:#0b0d12;
+    background:rgba(0,0,0,0.18);
     border:1px solid var(--border);
     border-radius:999px;
     overflow:hidden;
     height:16px;
   }
+  [data-theme="light"] .barWrap{ background: rgba(0,0,0,0.06); }
+
   .bar{
     height:100%;
     width:0%;
     background:var(--good);
     transition:width .15s ease;
   }
-  .barMeta{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:6px;}
+
+  .barMeta{
+    display:flex;
+    justify-content:space-between;
+    color:var(--muted);
+    font-size:13px;
+    margin-top:6px;
+    gap:12px;
+    align-items:center;
+  }
+
   .pill{
     display:inline-flex;gap:8px;align-items:center;
     padding:6px 10px;border:1px solid var(--border);
@@ -64,6 +122,7 @@
     color:var(--muted);
     width:fit-content;
   }
+  [data-theme="light"] .pill{ background: rgba(0,0,0,0.03); }
   .pill strong{color:var(--text);font-weight:600;}
   .lock{color:var(--warn);}
 
@@ -79,6 +138,8 @@
   }
   li:active{transform:scale(0.995);}
   li.active{background:var(--active); outline:1px solid rgba(255,255,255,.06);}
+  [data-theme="light"] li.active{ outline: 1px solid rgba(0,0,0,.06); }
+
   .circle{
     width:18px;height:18px;border:2px solid #666;border-radius:50%;
     display:inline-flex;align-items:center;justify-content:center;
@@ -91,21 +152,22 @@
   .text{font-size:16px; line-height:1.3;}
   .muted{color:var(--muted);}
 
-  .sectionRow{font-weight:650;color:#fff;}
+  .sectionRow{font-weight:650;color:var(--text);}
   .sectionRow .circle{border-color:#3b445d;}
+  [data-theme="light"] .sectionRow .circle{border-color:#97a3b8;}
+
   .sectionRow.done{opacity:.9;}
   .sectionRow.done .circle{background:rgba(76,175,80,.25);border-color:rgba(76,175,80,.6);}
   .sectionRow.done .circle .tick{opacity:1;}
 
   .done .text{text-decoration:line-through;opacity:.65;}
 
-  /* indentation like your screenshot */
+  /* indentation */
   .level-0{margin-left:0px;}
   .level-1{margin-left:22px;}
   .level-2{margin-left:44px;}
   .level-3{margin-left:66px;}
 
-  /* collapse affordance */
   .twisty{
     width:18px; height:18px;
     display:inline-flex; align-items:center; justify-content:center;
@@ -115,26 +177,35 @@
     flex:0 0 auto;
   }
   .sectionRow .twisty{border-color:rgba(255,255,255,.06);}
+  [data-theme="light"] .sectionRow .twisty{border-color:rgba(0,0,0,.08);}
   .collapsed .twisty{transform:rotate(-90deg);}
   .twisty svg{width:14px;height:14px;}
 
-  /* touch-friendly */
   @media (pointer: coarse) {
     li{padding:14px 12px;}
     .text{font-size:18px;}
     .circle{width:22px;height:22px;}
+    select, button{padding:10px 12px;}
   }
+
 </style>
 </head>
 
 <body>
 <div class="wrap">
   <header>
-    <h1 id="title">Robot Electrical Checklist</h1>
+    <div class="topRow">
+      <h1 id="title">Checklist</h1>
+      <div class="controls">
+        <select id="checklistSelect" aria-label="Select checklist"></select>
+        <button id="themeBtn" type="button" aria-label="Toggle theme">🌙</button>
+      </div>
+    </div>
 
     <div class="barWrap" aria-label="Progress">
       <div class="bar" id="bar"></div>
     </div>
+
     <div class="barMeta">
       <div id="progressText">0/0 complete</div>
       <div class="pill" id="gatePill">
@@ -144,7 +215,7 @@
     </div>
 
     <div class="sub">
-      Keyboard: ↑/↓ move, Enter toggle, Space expand/collapse section. <br/>
+      Keyboard: ↑/↓ move, Enter toggle, Space expand/collapse section.<br/>
       Touch/click: tap item to toggle, tap section title to collapse/expand.
     </div>
   </header>
@@ -154,17 +225,23 @@
 
 <script>
 /**
- * ✅ EDITABLE XML CHECKLIST (single-file GitHub Pages friendly)
- * - Add/remove <section> and <item> freely
- * - Any <section gate="true"> is locked until all items BEFORE it are completed.
- * - Auto-complete: a section marks complete when all its descendant items complete.
- * - Auto-collapse: a section collapses when it becomes complete (toggle in settings).
+ * Multiple checklist support:
+ * Add entries here and create the XML files under /checklists/.
  */
+const CHECKLISTS = [
+  { id: "robot_electrical", label: "Robot Electrical", file: "./checklists/robot_electrical.xml" },
+  //{ id: "robot_mechanical", label: "Robot Mechanical", file: "./checklists/robot_mechanical.xml" },
+  // Add more like this:
+  // { id: "robot_mechanical", label: "Robot Mechanical", file: "./checklists/robot_mechanical.xml" },
+  // { id: "pit_setup", label: "Pit Setup", file: "./checklists/pit_setup.xml" },
+];
+
 // Behavior toggles
 const SETTINGS = {
   autoCollapseOnComplete: true,
   persistToLocalStorage: true,
-  storageKey: "robot-checklist-v1"
+  // storageKey becomes per-checklist: `${storageKeyPrefix}:${checklistId}`
+  storageKeyPrefix: "robot-checklist"
 };
 
 const listEl = document.getElementById("list");
@@ -172,15 +249,47 @@ const barEl = document.getElementById("bar");
 const progressTextEl = document.getElementById("progressText");
 const titleEl = document.getElementById("title");
 const gatePill = document.getElementById("gatePill");
+const checklistSelect = document.getElementById("checklistSelect");
+const themeBtn = document.getElementById("themeBtn");
 
-let flat = [];             // flattened rows for navigation/rendering
-let nodesById = new Map(); // id -> node
+let flat = [];
+let nodesById = new Map();
 let activeIndex = 0;
+let currentChecklist = CHECKLISTS[0];
 
-/** Node shape:
- * { id, type:'section'|'item', title/text, level, parentId, childrenIds[], done, collapsed, gate }
- */
+// ---------- Theme ----------
+const THEME_KEY = "checklist-theme";
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  themeBtn.textContent = (theme === "light") ? "☀️" : "🌙";
+  localStorage.setItem(THEME_KEY, theme);
+}
+applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+themeBtn.addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(cur === "dark" ? "light" : "dark");
+});
 
+// ---------- Checklist select ----------
+function populateChecklistSelect(){
+  checklistSelect.innerHTML = "";
+  CHECKLISTS.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = c.label;
+    checklistSelect.appendChild(opt);
+  });
+  checklistSelect.value = currentChecklist.id;
+}
+populateChecklistSelect();
+
+checklistSelect.addEventListener("change", async () => {
+  const next = CHECKLISTS.find(c => c.id === checklistSelect.value);
+  if (!next) return;
+  await loadChecklist(next);
+});
+
+// ---------- Helpers ----------
 function uid() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
@@ -188,19 +297,18 @@ function uid() {
 function parseXML(xmlString){
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, "application/xml");
-
   const parseError = doc.querySelector("parsererror");
   if (parseError) throw new Error("XML parse error");
 
   const root = doc.querySelector("checklist");
   const title = root.getAttribute("title") || "Checklist";
   titleEl.textContent = title;
+  document.title = title;
 
   nodesById.clear();
   flat = [];
 
   function walk(el, level, parentId){
-    // Only handle <section> and <item>
     if (el.tagName === "section") {
       const id = uid();
       const title = el.getAttribute("title") || "SECTION";
@@ -209,18 +317,14 @@ function parseXML(xmlString){
       const node = { id, type:"section", title, level, parentId, childrenIds:[], done:false, collapsed:false, gate };
       nodesById.set(id, node);
 
-      // Add to parent's children
       if (parentId) nodesById.get(parentId).childrenIds.push(id);
-
-      // Flatten
       flat.push(id);
 
-      // Walk children
       [...el.children].forEach(child => {
         if (child.tagName === "section" || child.tagName === "item") walk(child, level+1, id);
       });
 
-      return id;
+      return;
     }
 
     if (el.tagName === "item") {
@@ -230,11 +334,9 @@ function parseXML(xmlString){
       nodesById.set(id, node);
       if (parentId) nodesById.get(parentId).childrenIds.push(id);
       flat.push(id);
-      return id;
     }
   }
 
-  // Walk direct children of checklist
   [...root.children].forEach(child => {
     if (child.tagName === "section") walk(child, 0, null);
   });
@@ -264,12 +366,10 @@ function recomputeSectionDone(sectionId){
   const allDone = itemIds.length > 0 && itemIds.every(id => nodesById.get(id).done);
   sec.done = allDone;
 
-  if (allDone && SETTINGS.autoCollapseOnComplete) sec.collapsed = true;
-  if (!allDone && SETTINGS.autoCollapseOnComplete) sec.collapsed = false;
+  if (SETTINGS.autoCollapseOnComplete) sec.collapsed = allDone;
 }
 
 function recomputeAllSections(){
-  // Compute bottom-up: reverse flat order
   [...flat].reverse().forEach(id => {
     const n = nodesById.get(id);
     if (n.type === "section") recomputeSectionDone(id);
@@ -286,7 +386,6 @@ function isHiddenByCollapse(id){
   return false;
 }
 
-// Gate rule: any section with gate=true is locked until ALL items before that section in flat order are done.
 function gateLocked(sectionId){
   const sec = nodesById.get(sectionId);
   if (!(sec && sec.type==="section" && sec.gate)) return false;
@@ -301,7 +400,6 @@ function gateLocked(sectionId){
 
 function isToggleAllowed(id){
   const n = nodesById.get(id);
-  // If item is within a gated section, block until unlocked
   let p = n.type === "section" ? n : (n.parentId ? nodesById.get(n.parentId) : null);
   while (p){
     if (p.type === "section" && p.gate && gateLocked(p.id)) return false;
@@ -330,36 +428,34 @@ function updateProgress(){
   barEl.style.width = pct + "%";
   progressTextEl.textContent = `${doneCount}/${total} complete`;
 
-  // Update gate UI
   const gateSectionId = flat.find(id => nodesById.get(id).type==="section" && nodesById.get(id).gate);
   if (gateSectionId) {
-    const locked = gateLocked(gateSectionId);
-    gatePill.style.display = locked ? "inline-flex" : "none";
+    gatePill.style.display = gateLocked(gateSectionId) ? "inline-flex" : "none";
   } else {
     gatePill.style.display = "none";
   }
 }
 
+function storageKey(){
+  return `${SETTINGS.storageKeyPrefix}:${currentChecklist.id}`;
+}
+
 function saveState(){
   if (!SETTINGS.persistToLocalStorage) return;
   const payload = {
-    nodes: [...nodesById.values()].map(n => ({
-      id:n.id, type:n.type, done:n.done, collapsed:n.collapsed
-    })),
+    nodes: [...nodesById.values()].map(n => ({ id:n.id, type:n.type, done:n.done, collapsed:n.collapsed })),
     activeIndex
   };
-  localStorage.setItem(SETTINGS.storageKey, JSON.stringify(payload));
+  localStorage.setItem(storageKey(), JSON.stringify(payload));
 }
 
 function loadState(){
   if (!SETTINGS.persistToLocalStorage) return;
-  const raw = localStorage.getItem(SETTINGS.storageKey);
+  const raw = localStorage.getItem(storageKey());
   if (!raw) return;
   try{
     const payload = JSON.parse(raw);
     const byId = new Map(payload.nodes.map(x => [x.id, x]));
-    // Only apply if IDs match (same XML build)
-    // If they don't match, skip (user edited XML).
     const allIdsMatch = payload.nodes && payload.nodes.length === nodesById.size &&
                         [...nodesById.keys()].every(id => byId.has(id));
     if (!allIdsMatch) return;
@@ -377,7 +473,6 @@ function render(){
   listEl.innerHTML = "";
   const vis = visibleRowIds();
 
-  // Ensure activeIndex is valid
   if (activeIndex < 0) activeIndex = 0;
   if (activeIndex >= vis.length) activeIndex = vis.length-1;
 
@@ -397,7 +492,6 @@ function render(){
     tick.textContent = "✓";
     circle.appendChild(tick);
 
-    // twisty only for sections
     const twisty = document.createElement("div");
     twisty.className = "twisty";
     if (n.type === "section") {
@@ -406,7 +500,6 @@ function render(){
           <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`;
     } else {
-      twisty.innerHTML = "";
       twisty.style.borderColor = "transparent";
     }
 
@@ -414,10 +507,9 @@ function render(){
     text.className = "text";
     text.textContent = (n.type === "section") ? n.title : n.text;
 
-    // Locked styling hint
     const allowed = isToggleAllowed(id);
     if (!allowed) {
-      li.style.opacity = "0.5";
+      li.style.opacity = "0.55";
       li.title = "Locked until earlier items are completed";
     }
 
@@ -425,29 +517,21 @@ function render(){
     li.appendChild(twisty);
     li.appendChild(text);
 
-    // Click/touch behavior:
     li.addEventListener("click", () => {
-      // make clicked row active
       activeIndex = i;
       if (n.type === "section") {
-        // tap section title to collapse/expand
         n.collapsed = !n.collapsed;
       } else {
-        // tap item to toggle
         toggleByVisibleIndex(i);
       }
-      render(); // rerender after collapse/toggle
+      render();
     });
 
     listEl.appendChild(li);
   });
 
   updateProgress();
-
-  // Scroll active into view
-  const activeLi = listEl.querySelector("li.active");
-  activeLi?.scrollIntoView({ block: "nearest" });
-
+  listEl.querySelector("li.active")?.scrollIntoView({ block: "nearest" });
   saveState();
 }
 
@@ -456,19 +540,15 @@ function toggleByVisibleIndex(visibleIndex){
   const id = vis[visibleIndex];
   const n = nodesById.get(id);
   if (!n || n.type !== "item") return;
-
-  if (!isToggleAllowed(id)) return; // gate enforcement
+  if (!isToggleAllowed(id)) return;
 
   n.done = !n.done;
 
-  // Recompute section completion up the tree
   let p = n.parentId ? nodesById.get(n.parentId) : null;
   while (p) {
     if (p.type === "section") recomputeSectionDone(p.id);
     p = p.parentId ? nodesById.get(p.parentId) : null;
   }
-
-  // If this toggle unlocked a gate, re-render will show it
 }
 
 function move(delta){
@@ -483,12 +563,9 @@ function toggleActive(){
   const n = nodesById.get(id);
   if (!n) return;
 
-  if (n.type === "section") {
-    // Enter on section toggles collapse
-    n.collapsed = !n.collapsed;
-  } else {
-    toggleByVisibleIndex(activeIndex);
-  }
+  if (n.type === "section") n.collapsed = !n.collapsed;
+  else toggleByVisibleIndex(activeIndex);
+
   render();
 }
 
@@ -509,26 +586,39 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === " ") { e.preventDefault(); toggleCollapseActive(); }
 });
 
-// Build app
-async function loadChecklist() {
-  try {
-    const response = await fetch("checklist.xml");
-    if (!response.ok) throw new Error("Failed to load XML");
+// ---------- Load checklist ----------
+async function loadChecklist(checklist){
+  currentChecklist = checklist;
+  checklistSelect.value = checklist.id;
 
-    const xmlText = await response.text();
+  // Reset UI while loading
+  titleEl.textContent = "Loading…";
+  listEl.innerHTML = "";
+  barEl.style.width = "0%";
+  progressTextEl.textContent = "";
+  gatePill.style.display = "none";
 
+  try{
+    const res = await fetch(checklist.file, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status} loading ${checklist.file}`);
+
+    const xmlText = await res.text();
     parseXML(xmlText);
+
+    activeIndex = 0;
     loadState();
     recomputeAllSections();
     clampActiveToVisible();
     render();
-  } catch (err) {
+  }catch(err){
     console.error(err);
-    document.getElementById("title").textContent = "Error loading checklist.xml";
+    titleEl.textContent = "Error loading checklist";
+    progressTextEl.textContent = String(err);
   }
 }
 
-loadChecklist();
+// Start
+loadChecklist(currentChecklist);
 </script>
 </body>
 </html>
