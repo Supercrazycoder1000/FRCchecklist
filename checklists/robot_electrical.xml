@@ -52,6 +52,7 @@
   <section title="START UP" gate="true">
     <item>NEW BATTERY IN</item>
     <item>POWER ON BREAKER</item>
+    <item>Battery Cables to PolyCarb</item>
   </section>
 
 </checklist>
