@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Robot Electrical Checklist</title>
+
+<style>
+  :root{
+    --bg:#0f1116;
+    --panel:#121622;
+    --text:#d6d6d6;
+    --muted:#9aa3b2;
+    --active:#1c1f26;
+    --border:#2a3142;
+    --good:#4caf50;
+    --warn:#ffb020;
+  }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    margin:0;
+    padding:24px;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
+  header{
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  background: rgba(15,17,22,0.95);
+  backdrop-filter: blur(6px);
+
+  padding: 12px 0 16px 0;
+
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+  h1{margin:0;font-weight:650;font-size:28px;}
+  .sub{color:var(--muted);font-size:14px;line-height:1.35;}
+  .barWrap{
+    background:#0b0d12;
+    border:1px solid var(--border);
+    border-radius:999px;
+    overflow:hidden;
+    height:16px;
+  }
+  .bar{
+    height:100%;
+    width:0%;
+    background:var(--good);
+    transition:width .15s ease;
+  }
+  .barMeta{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:6px;}
+  .pill{
+    display:inline-flex;gap:8px;align-items:center;
+    padding:6px 10px;border:1px solid var(--border);
+    border-radius:999px;background:rgba(255,255,255,.02);
+    color:var(--muted);
+    width:fit-content;
+  }
+  .pill strong{color:var(--text);font-weight:600;}
+  .lock{color:var(--warn);}
+
+  ul{list-style:none;padding:0;margin:14px 0 0;}
+  li{
+    padding:8px 10px;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  li:active{transform:scale(0.995);}
+  li.active{background:var(--active); outline:1px solid rgba(255,255,255,.06);}
+  .circle{
+    width:18px;height:18px;border:2px solid #666;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    flex:0 0 auto;
+  }
+  .done .circle{background:var(--good);border-color:var(--good);}
+  .circle .tick{font-size:12px;line-height:1;color:white;opacity:0;}
+  .done .circle .tick{opacity:1;}
+
+  .text{font-size:16px; line-height:1.3;}
+  .muted{color:var(--muted);}
+
+  .sectionRow{font-weight:650;color:#fff;}
+  .sectionRow .circle{border-color:#3b445d;}
+  .sectionRow.done{opacity:.9;}
+  .sectionRow.done .circle{background:rgba(76,175,80,.25);border-color:rgba(76,175,80,.6);}
+  .sectionRow.done .circle .tick{opacity:1;}
+
+  .done .text{text-decoration:line-through;opacity:.65;}
+
+  /* indentation like your screenshot */
+  .level-0{margin-left:0px;}
+  .level-1{margin-left:22px;}
+  .level-2{margin-left:44px;}
+  .level-3{margin-left:66px;}
+
+  /* collapse affordance */
+  .twisty{
+    width:18px; height:18px;
+    display:inline-flex; align-items:center; justify-content:center;
+    color:var(--muted);
+    border:1px solid transparent;
+    border-radius:6px;
+    flex:0 0 auto;
+  }
+  .sectionRow .twisty{border-color:rgba(255,255,255,.06);}
+  .collapsed .twisty{transform:rotate(-90deg);}
+  .twisty svg{width:14px;height:14px;}
+
+  /* touch-friendly */
+  @media (pointer: coarse) {
+    li{padding:14px 12px;}
+    .text{font-size:18px;}
+    .circle{width:22px;height:22px;}
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title">Robot Electrical Checklist</h1>
+
+    <div class="barWrap" aria-label="Progress">
+      <div class="bar" id="bar"></div>
+    </div>
+    <div class="barMeta">
+      <div id="progressText">0/0 complete</div>
+      <div class="pill" id="gatePill">
+        <span class="lock">⚠</span>
+        <span><strong>START UP</strong> locked until PREFLIGHT complete</span>
+      </div>
+    </div>
+
+    <div class="sub">
+      Keyboard: ↑/↓ move, Enter toggle, Space expand/collapse section. <br/>
+      Touch/click: tap item to toggle, tap section title to collapse/expand.
+    </div>
+  </header>
+
+  <ul id="list"></ul>
+</div>
+
+<script>
+/**
+ * ✅ EDITABLE XML CHECKLIST (single-file GitHub Pages friendly)
+ * - Add/remove <section> and <item> freely
+ * - Any <section gate="true"> is locked until all items BEFORE it are completed.
+ * - Auto-complete: a section marks complete when all its descendant items complete.
+ * - Auto-collapse: a section collapses when it becomes complete (toggle in settings).
+ */
+// Behavior toggles
+const SETTINGS = {
+  autoCollapseOnComplete: true,
+  persistToLocalStorage: true,
+  storageKey: "robot-checklist-v1"
+};
+
+const listEl = document.getElementById("list");
+const barEl = document.getElementById("bar");
+const progressTextEl = document.getElementById("progressText");
+const titleEl = document.getElementById("title");
+const gatePill = document.getElementById("gatePill");
+
+let flat = [];             // flattened rows for navigation/rendering
+let nodesById = new Map(); // id -> node
+let activeIndex = 0;
+
+/** Node shape:
+ * { id, type:'section'|'item', title/text, level, parentId, childrenIds[], done, collapsed, gate }
+ */
+
+function uid() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+function parseXML(xmlString){
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlString, "application/xml");
+
+  const parseError = doc.querySelector("parsererror");
+  if (parseError) throw new Error("XML parse error");
+
+  const root = doc.querySelector("checklist");
+  const title = root.getAttribute("title") || "Checklist";
+  titleEl.textContent = title;
+
+  nodesById.clear();
+  flat = [];
+
+  function walk(el, level, parentId){
+    // Only handle <section> and <item>
+    if (el.tagName === "section") {
+      const id = uid();
+      const title = el.getAttribute("title") || "SECTION";
+      const gate = el.getAttribute("gate") === "true";
+
+      const node = { id, type:"section", title, level, parentId, childrenIds:[], done:false, collapsed:false, gate };
+      nodesById.set(id, node);
+
+      // Add to parent's children
+      if (parentId) nodesById.get(parentId).childrenIds.push(id);
+
+      // Flatten
+      flat.push(id);
+
+      // Walk children
+      [...el.children].forEach(child => {
+        if (child.tagName === "section" || child.tagName === "item") walk(child, level+1, id);
+      });
+
+      return id;
+    }
+
+    if (el.tagName === "item") {
+      const id = uid();
+      const text = (el.textContent || "").trim();
+      const node = { id, type:"item", text, level, parentId, childrenIds:[], done:false, collapsed:false, gate:false };
+      nodesById.set(id, node);
+      if (parentId) nodesById.get(parentId).childrenIds.push(id);
+      flat.push(id);
+      return id;
+    }
+  }
+
+  // Walk direct children of checklist
+  [...root.children].forEach(child => {
+    if (child.tagName === "section") walk(child, 0, null);
+  });
+}
+
+function descendants(sectionId){
+  const out = [];
+  const stack = [...nodesById.get(sectionId).childrenIds];
+  while (stack.length){
+    const id = stack.pop();
+    out.push(id);
+    const n = nodesById.get(id);
+    if (n.type === "section") stack.push(...n.childrenIds);
+  }
+  return out;
+}
+
+function sectionItems(sectionId){
+  return descendants(sectionId).filter(id => nodesById.get(id).type === "item");
+}
+
+function recomputeSectionDone(sectionId){
+  const sec = nodesById.get(sectionId);
+  if (!sec || sec.type !== "section") return;
+
+  const itemIds = sectionItems(sectionId);
+  const allDone = itemIds.length > 0 && itemIds.every(id => nodesById.get(id).done);
+  sec.done = allDone;
+
+  if (allDone && SETTINGS.autoCollapseOnComplete) sec.collapsed = true;
+  if (!allDone && SETTINGS.autoCollapseOnComplete) sec.collapsed = false;
+}
+
+function recomputeAllSections(){
+  // Compute bottom-up: reverse flat order
+  [...flat].reverse().forEach(id => {
+    const n = nodesById.get(id);
+    if (n.type === "section") recomputeSectionDone(id);
+  });
+}
+
+function isHiddenByCollapse(id){
+  const n = nodesById.get(id);
+  let p = n.parentId ? nodesById.get(n.parentId) : null;
+  while (p){
+    if (p.type === "section" && p.collapsed) return true;
+    p = p.parentId ? nodesById.get(p.parentId) : null;
+  }
+  return false;
+}
+
+// Gate rule: any section with gate=true is locked until ALL items before that section in flat order are done.
+function gateLocked(sectionId){
+  const sec = nodesById.get(sectionId);
+  if (!(sec && sec.type==="section" && sec.gate)) return false;
+
+  const idx = flat.indexOf(sectionId);
+  if (idx < 0) return false;
+
+  const beforeIds = flat.slice(0, idx);
+  const beforeItems = beforeIds.filter(id => nodesById.get(id).type === "item");
+  return beforeItems.some(id => !nodesById.get(id).done);
+}
+
+function isToggleAllowed(id){
+  const n = nodesById.get(id);
+  // If item is within a gated section, block until unlocked
+  let p = n.type === "section" ? n : (n.parentId ? nodesById.get(n.parentId) : null);
+  while (p){
+    if (p.type === "section" && p.gate && gateLocked(p.id)) return false;
+    p = p.parentId ? nodesById.get(p.parentId) : null;
+  }
+  return true;
+}
+
+function visibleRowIds(){
+  return flat.filter(id => !isHiddenByCollapse(id));
+}
+
+function clampActiveToVisible(){
+  const vis = visibleRowIds();
+  if (!vis.length) return;
+  const activeId = vis[activeIndex] ?? vis[0];
+  activeIndex = Math.max(0, Math.min(vis.length-1, vis.indexOf(activeId)));
+}
+
+function updateProgress(){
+  const allItemIds = flat.filter(id => nodesById.get(id).type === "item");
+  const doneCount = allItemIds.filter(id => nodesById.get(id).done).length;
+  const total = allItemIds.length;
+
+  const pct = total ? Math.round((doneCount/total)*100) : 0;
+  barEl.style.width = pct + "%";
+  progressTextEl.textContent = `${doneCount}/${total} complete`;
+
+  // Update gate UI
+  const gateSectionId = flat.find(id => nodesById.get(id).type==="section" && nodesById.get(id).gate);
+  if (gateSectionId) {
+    const locked = gateLocked(gateSectionId);
+    gatePill.style.display = locked ? "inline-flex" : "none";
+  } else {
+    gatePill.style.display = "none";
+  }
+}
+
+function saveState(){
+  if (!SETTINGS.persistToLocalStorage) return;
+  const payload = {
+    nodes: [...nodesById.values()].map(n => ({
+      id:n.id, type:n.type, done:n.done, collapsed:n.collapsed
+    })),
+    activeIndex
+  };
+  localStorage.setItem(SETTINGS.storageKey, JSON.stringify(payload));
+}
+
+function loadState(){
+  if (!SETTINGS.persistToLocalStorage) return;
+  const raw = localStorage.getItem(SETTINGS.storageKey);
+  if (!raw) return;
+  try{
+    const payload = JSON.parse(raw);
+    const byId = new Map(payload.nodes.map(x => [x.id, x]));
+    // Only apply if IDs match (same XML build)
+    // If they don't match, skip (user edited XML).
+    const allIdsMatch = payload.nodes && payload.nodes.length === nodesById.size &&
+                        [...nodesById.keys()].every(id => byId.has(id));
+    if (!allIdsMatch) return;
+
+    byId.forEach((v,id)=>{
+      const n = nodesById.get(id);
+      n.done = !!v.done;
+      n.collapsed = !!v.collapsed;
+    });
+    activeIndex = typeof payload.activeIndex === "number" ? payload.activeIndex : 0;
+  }catch(e){}
+}
+
+function render(){
+  listEl.innerHTML = "";
+  const vis = visibleRowIds();
+
+  // Ensure activeIndex is valid
+  if (activeIndex < 0) activeIndex = 0;
+  if (activeIndex >= vis.length) activeIndex = vis.length-1;
+
+  vis.forEach((id, i) => {
+    const n = nodesById.get(id);
+    const li = document.createElement("li");
+    li.classList.add(`level-${Math.min(3, n.level)}`);
+    if (i === activeIndex) li.classList.add("active");
+    if (n.done) li.classList.add("done");
+    if (n.type === "section") li.classList.add("sectionRow");
+    if (n.type === "section" && n.collapsed) li.classList.add("collapsed");
+
+    const circle = document.createElement("div");
+    circle.className = "circle";
+    const tick = document.createElement("span");
+    tick.className = "tick";
+    tick.textContent = "✓";
+    circle.appendChild(tick);
+
+    // twisty only for sections
+    const twisty = document.createElement("div");
+    twisty.className = "twisty";
+    if (n.type === "section") {
+      twisty.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`;
+    } else {
+      twisty.innerHTML = "";
+      twisty.style.borderColor = "transparent";
+    }
+
+    const text = document.createElement("span");
+    text.className = "text";
+    text.textContent = (n.type === "section") ? n.title : n.text;
+
+    // Locked styling hint
+    const allowed = isToggleAllowed(id);
+    if (!allowed) {
+      li.style.opacity = "0.5";
+      li.title = "Locked until earlier items are completed";
+    }
+
+    li.appendChild(circle);
+    li.appendChild(twisty);
+    li.appendChild(text);
+
+    // Click/touch behavior:
+    li.addEventListener("click", () => {
+      // make clicked row active
+      activeIndex = i;
+      if (n.type === "section") {
+        // tap section title to collapse/expand
+        n.collapsed = !n.collapsed;
+      } else {
+        // tap item to toggle
+        toggleByVisibleIndex(i);
+      }
+      render(); // rerender after collapse/toggle
+    });
+
+    listEl.appendChild(li);
+  });
+
+  updateProgress();
+
+  // Scroll active into view
+  const activeLi = listEl.querySelector("li.active");
+  activeLi?.scrollIntoView({ block: "nearest" });
+
+  saveState();
+}
+
+function toggleByVisibleIndex(visibleIndex){
+  const vis = visibleRowIds();
+  const id = vis[visibleIndex];
+  const n = nodesById.get(id);
+  if (!n || n.type !== "item") return;
+
+  if (!isToggleAllowed(id)) return; // gate enforcement
+
+  n.done = !n.done;
+
+  // Recompute section completion up the tree
+  let p = n.parentId ? nodesById.get(n.parentId) : null;
+  while (p) {
+    if (p.type === "section") recomputeSectionDone(p.id);
+    p = p.parentId ? nodesById.get(p.parentId) : null;
+  }
+
+  // If this toggle unlocked a gate, re-render will show it
+}
+
+function move(delta){
+  const vis = visibleRowIds();
+  activeIndex = Math.max(0, Math.min(vis.length-1, activeIndex + delta));
+  render();
+}
+
+function toggleActive(){
+  const vis = visibleRowIds();
+  const id = vis[activeIndex];
+  const n = nodesById.get(id);
+  if (!n) return;
+
+  if (n.type === "section") {
+    // Enter on section toggles collapse
+    n.collapsed = !n.collapsed;
+  } else {
+    toggleByVisibleIndex(activeIndex);
+  }
+  render();
+}
+
+function toggleCollapseActive(){
+  const vis = visibleRowIds();
+  const id = vis[activeIndex];
+  const n = nodesById.get(id);
+  if (n && n.type === "section") {
+    n.collapsed = !n.collapsed;
+    render();
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown") { e.preventDefault(); move(1); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); move(-1); }
+  else if (e.key === "Enter") { e.preventDefault(); toggleActive(); }
+  else if (e.key === " ") { e.preventDefault(); toggleCollapseActive(); }
+});
+
+// Build app
+async function loadChecklist() {
+  try {
+    const response = await fetch("checklist.xml");
+    if (!response.ok) throw new Error("Failed to load XML");
+
+    const xmlText = await response.text();
+
+    parseXML(xmlText);
+    loadState();
+    recomputeAllSections();
+    clampActiveToVisible();
+    render();
+  } catch (err) {
+    console.error(err);
+    document.getElementById("title").textContent = "Error loading checklist.xml";
+  }
+}
+
+loadChecklist();
+</script>
+</body>
+</html>
