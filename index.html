@@ -255,6 +255,7 @@ const themeBtn = document.getElementById("themeBtn");
 let flat = [];
 let nodesById = new Map();
 let activeIndex = 0;
+let activeId = null;            // <-- NEW: stable selection
 let currentChecklist = CHECKLISTS[0];
 
 // ---------- Theme ----------
@@ -473,8 +474,17 @@ function render(){
   listEl.innerHTML = "";
   const vis = visibleRowIds();
 
-  if (activeIndex < 0) activeIndex = 0;
-  if (activeIndex >= vis.length) activeIndex = vis.length-1;
+    // Keep selection stable even when collapse changes the visible list
+  if (vis.length === 0) {
+    activeIndex = 0;
+    activeId = null;
+  } else if (activeId && vis.includes(activeId)) {
+    activeIndex = vis.indexOf(activeId);
+  } else {
+    // fallback: clamp index, then set activeId to whatever is there
+    activeIndex = Math.max(0, Math.min(vis.length - 1, activeIndex));
+    activeId = vis[activeIndex];
+  }
 
   vis.forEach((id, i) => {
     const n = nodesById.get(id);
@@ -519,6 +529,7 @@ function render(){
 
     li.addEventListener("click", () => {
       activeIndex = i;
+      activeId = id; // <-- NEW
       if (n.type === "section") {
         n.collapsed = !n.collapsed;
       } else {
@@ -549,11 +560,30 @@ function toggleByVisibleIndex(visibleIndex){
     if (p.type === "section") recomputeSectionDone(p.id);
     p = p.parentId ? nodesById.get(p.parentId) : null;
   }
+    // If auto-collapse hid the current item, move to the next visible row
+  if (isHiddenByCollapse(id)) {
+    const visNow = visibleRowIds();
+    const flatPos = flat.indexOf(id);
+    const nextId = visNow.find(v => flat.indexOf(v) > flatPos) || visNow[visNow.length - 1] || null;
+    if (nextId) {
+      activeId = nextId;
+      activeIndex = visNow.indexOf(nextId);
+    }
+  } else {
+    // Otherwise stay on the same item
+    activeId = id;
+  }
 }
 
 function move(delta){
   const vis = visibleRowIds();
-  activeIndex = Math.max(0, Math.min(vis.length-1, activeIndex + delta));
+  if (!vis.length) return;
+
+  const cur = (activeId && vis.includes(activeId)) ? vis.indexOf(activeId) : activeIndex;
+  const next = Math.max(0, Math.min(vis.length - 1, cur + delta));
+
+  activeIndex = next;
+  activeId = vis[next];
   render();
 }
 
@@ -606,6 +636,7 @@ async function loadChecklist(checklist){
     parseXML(xmlText);
 
     activeIndex = 0;
+    activeId = null;
     loadState();
     recomputeAllSections();
     clampActiveToVisible();
