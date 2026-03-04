@@ -52,8 +52,11 @@
 
   <section title="START UP" gate="true">
     <item>NEW BATTERY IN cables on polycarb</item>
+    <item>Plug battery in</item>
     <item>Battery Strap</item>
     <item>POWER ON BREAKER</item>
+    <item>RSL on?</item>
+    <item>Listen for the beeps</item>
   </section>
 
 </checklist>
