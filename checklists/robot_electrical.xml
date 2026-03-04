@@ -59,4 +59,10 @@
     <item>Listen for the beeps</item>
   </section>
 
+  <section title="Shut Down" gate="true">
+    <item>Power down Breaker</item>
+    <item>unplug battery</item>
+    <item>declimb</item>
+    <item>unstrap battery</item>
+  </section>
 </checklist>
