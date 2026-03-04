@@ -26,6 +26,7 @@
     <section title="WIRES">
       <item>visually inspect frame wires for damage around grommets and damage points</item>
       <item>visually inspect wires for climber interference</item>
+      <item>check for broken zipties</item>
       <item>untwist Linear Actuator Wires</item>
     </section>
 
@@ -51,6 +52,7 @@
 
   <section title="START UP" gate="true">
     <item>NEW BATTERY IN cables on polycarb</item>
+    <item>Battery Strap</item>
     <item>POWER ON BREAKER</item>
   </section>
 
